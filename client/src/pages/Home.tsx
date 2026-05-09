@@ -70,12 +70,32 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export default function Home() {
   const [openFaq, setOpenFaq] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    toast.success("Missed lead check requested", {
-      description: "We'll review your lead flow and follow up within one business day.",
-    });
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("submit failed");
+      form.reset();
+      toast.success("Missed lead check requested", {
+        description: "We'll review your lead flow and follow up within one business day.",
+      });
+    } catch {
+      toast.error("Something went wrong", {
+        description: "Please try again or message us on WhatsApp.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -295,7 +315,7 @@ export default function Home() {
                 <option value="missed-facebook-leads">Missed Facebook ad leads</option>
               </select></label>
               <label className="field-label mt-5">What should we review first?<textarea name="notes" rows={4} placeholder="Tell us where your inquiries come from and what usually gets missed." /></label>
-              <Button type="submit" style={{ backgroundColor: "#22c55e", color: "#071018" }} className="mt-7 h-14 w-full text-base hover:opacity-90">Get a Free Missed Lead Check <ArrowRight className="ml-2 h-5 w-5" /></Button>
+              <Button type="submit" disabled={submitting} style={{ backgroundColor: "#22c55e", color: "#071018" }} className="mt-7 h-14 w-full text-base hover:opacity-90">{submitting ? "Sending…" : <>Get a Free Missed Lead Check <ArrowRight className="ml-2 h-5 w-5" /></>}</Button>
             </form>
           </div>
         </section>
